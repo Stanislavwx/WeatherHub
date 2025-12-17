@@ -1,0 +1,157 @@
+name: weatherhubcloudflare
+
+networks:
+  web:
+  internal:
+    internal: true
+
+volumes:
+  postgres_data:
+
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    depends_on:
+      api-gateway:
+        condition: service_started
+      frontend:
+        condition: service_started
+    networks:
+      - web
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    expose:
+      - "80"
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    networks:
+      - web
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  api-gateway:
+    build: ./services/api-gateway
+    ports:
+      - "8081:8000"
+    expose:
+      - "8000"
+    environment:
+      WEATHER_SERVICE_URL: http://weather-service:8000
+      PLANNER_SERVICE_URL: http://planner-service:8000
+      HISTORY_SERVICE_URL: http://history-service:8000
+      HISTORY_ENABLED: "true"
+    depends_on:
+      weather-service:
+        condition: service_healthy
+      planner-service:
+        condition: service_healthy
+      history-service:
+        condition: service_healthy
+    networks:
+      - web
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\"",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  weather-service:
+    build: ./services/weather-service
+    expose:
+      - "8000"
+    environment:
+      WEATHER_PROVIDER: ${WEATHER_PROVIDER:-open-meteo}
+      WEATHER_TIMEOUT_SEC: ${WEATHER_TIMEOUT_SEC:-3}
+      WEATHER_FALLBACK_TO_MOCK: ${WEATHER_FALLBACK_TO_MOCK:-true}
+    networks:
+      - web
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\"",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  planner-service:
+    build: ./services/planner-service
+    expose:
+      - "8000"
+    networks:
+      - web
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\"",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  history-service:
+    build: ./services/history-service
+    expose:
+      - "8000"
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - web
+      - internal
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\"",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    expose:
+      - "5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - web
+      - internal
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>WeatherHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles.css?v=3" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header class="hero card glass">
+      <div>
+        <p class="eyebrow">WeatherHub</p>
+        <h1>All requests go through API Gateway</h1>
+        <p class="muted">Fetch real weather, generate plans, and keep history — one entry point.</p>
+      </div>
+      <div class="status-pill">
+        <span class="dot" id="health-dot"></span>
+        <span id="health-text">Checking...</span>
+      </div>
+    </header>
+
+    <section class="card glass">
+      <div class="form-grid">
+        <div class="input-wrap">
+          <label for="city">City</label>
+          <input id="city" type="text" value="Kyiv" placeholder="Enter city" />
+        </div>
+        <div class="actions">
+          <button id="btn-weather" class="btn primary">Get Weather</button>
+          <button id="btn-plan" class="btn">Get Plan</button>
+        </div>
+      </div>
+      <div class="muted tiny">Enter a city and run through the gateway. Enter key submits.</div>
+    </section>
+
+    <section class="grid-2">
+      <article class="card glass" id="weather-card">
+        <div class="card-header">
+          <div class="title-wrap">
+            <i data-lucide="cloud-sun"></i>
+            <div>
+              <p class="eyebrow">Weather</p>
+              <h3 id="weather-city">—</h3>
+            </div>
+          </div>
+          <span class="badge" id="weather-source">source</span>
+        </div>
+        <div class="weather-main">
+          <div class="icon-large" id="weather-icon">☁️</div>
+          <div>
+            <div class="temp" id="weather-temp">—°C</div>
+            <div class="muted" id="weather-condition">—</div>
+            <div class="muted tiny" id="weather-updated">Updated —</div>
+          </div>
+        </div>
+        <div class="details-grid">
+          <div class="detail">
+            <p class="muted tiny">Wind</p>
+            <div id="detail-wind">—</div>
+          </div>
+          <div class="detail">
+            <p class="muted tiny">Humidity</p>
+            <div id="detail-humidity">—</div>
+          </div>
+          <div class="detail">
+            <p class="muted tiny">Feels like</p>
+            <div id="detail-feels">—</div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card glass" id="plan-card">
+        <div class="card-header">
+          <div class="title-wrap">
+            <i data-lucide="calendar-clock"></i>
+            <div>
+              <p class="eyebrow">Plan</p>
+              <h3>Today’s plan</h3>
+            </div>
+          </div>
+          <span class="badge outline" id="plan-source">—</span>
+        </div>
+        <div class="chips" id="plan-activities"></div>
+        <div class="muted tiny" id="plan-generated">Generated —</div>
+      </article>
+    </section>
+
+    <section class="card glass">
+      <div class="tabs">
+        <button class="tab active" data-tab="weather">Weather History</button>
+        <button class="tab" data-tab="plans">Plans History</button>
+        <button class="tab ghost" id="history-toggle">Collapse</button>
+      </div>
+      <div class="history-list" id="history-weather" data-tabpanel="weather"></div>
+      <div class="history-list hidden" id="history-plans" data-tabpanel="plans"></div>
+    </section>
+
+    <section class="grid-2">
+      <article class="card glass">
+        <div class="card-header">
+          <div class="title-wrap">
+            <i data-lucide="activity"></i>
+            <div>
+              <p class="eyebrow">Analytics</p>
+              <h3>Temperature trend</h3>
+            </div>
+          </div>
+        </div>
+        <canvas id="temp-chart" height="220"></canvas>
+        <div class="muted tiny" id="temp-chart-empty">Not enough data yet.</div>
+      </article>
+
+      <article class="card glass">
+        <div class="card-header">
+          <div class="title-wrap">
+            <i data-lucide="pie-chart"></i>
+            <div>
+              <p class="eyebrow">Analytics</p>
+              <h3>Condition breakdown</h3>
+            </div>
+          </div>
+        </div>
+        <canvas id="condition-chart" height="220"></canvas>
+        <div class="muted tiny" id="condition-chart-empty">Not enough data yet.</div>
+      </article>
+    </section>
+
+    <section class="card glass">
+      <div class="card-header">
+        <div class="title-wrap">
+          <i data-lucide="clock-3"></i>
+          <div>
+            <p class="eyebrow">Forecast</p>
+            <h3>Today & next days</h3>
+          </div>
+        </div>
+      </div>
+      <div class="forecast">
+        <div>
+          <p class="muted tiny">Today (next hours)</p>
+          <div class="forecast-row" id="forecast-today"></div>
+        </div>
+        <div>
+          <p class="muted tiny">Next days</p>
+          <div class="forecast-row" id="forecast-days"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <div id="loader" class="loader hidden"><div class="spinner"></div></div>
+
+  <script src="app.js?v=3"></script>
+</body>
+</html>
